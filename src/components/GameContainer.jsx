@@ -4,7 +4,7 @@ import GuessButtons from './GuessButtons';
 import ScoreDisplay from './ScoreDisplay';
 import GameStatus from './GameStatus';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function GameContainer() {
   const [board, setBoard] = useState([]);

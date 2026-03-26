@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ride the Bus Flask API on Lambda with API Gateway
+
+Globals:
+  Function:
+    Timeout: 60
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+    EphemeralStorage:
+      Size: 512
+
+Resources:
+  # Lambda Function for the API
+  RideTheBusApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ride-the-bus-api
+      Description: Flask API for Ride the Bus game
+      CodeUri: ./backend
+      Handler: lambda_handler.handler
+      MemorySize: 512
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PYTHONPATH: /var/task/backend:/var/task/ridethebus-react/ridethebus
+      Layers:
+        - !Ref PythonDependenciesLayer
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref GameApi
+            Path: /{proxy+}
+            Method: ANY
+
+  # Lambda Layer for dependencies
+  PythonDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: ride-the-bus-dependencies
+      Description: Python dependencies for Ride the Bus API
+      ContentUri: ./backend
+      CompatibleRuntimes:
+        - python3.11
+      RetentionPolicy: Delete
+
+  # API Gateway
+  GameApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Name: ride-the-bus-api
+      Description: API Gateway for Ride the Bus Flask app
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
+      TracingEnabled: true
+      MethodSettings:
+        - ResourcePath: '/*'
+          HttpMethod: '*'
+          MetricsEnabled: true
+          DataTraceEnabled: true
+          LoggingLevel: INFO
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - prod
+    Description: Environment name
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL for Ride the Bus API
+    Value: !Sub 'https://${GameApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+    Export:
+      Name: RideTheBusApiUrl
+
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt RideTheBusApiFunction.Arn
+    Export:
+      Name: RideTheBusApiArn
+
+  ApiId:
+    Description: API Gateway API ID
+    Value: !Ref GameApi
+    Export:
+      Name: RideTheBusApiId

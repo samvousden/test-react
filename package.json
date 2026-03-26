@@ -15,8 +15,6 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
-    "@aws-amplify/backend": "^1.21.1",
-    "@aws-amplify/backend-cli": "^1.8.2",
     "@babel/core": "^7.29.0",
     "@eslint/js": "^9.39.4",
     "@rolldown/plugin-babel": "^0.2.1",

@@ -1,63 +1,57 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Ride the Bus Flask API on Lambda with API Gateway
-
 Globals:
   Function:
     Timeout: 60
     Runtime: python3.11
     Architectures:
-      - x86_64
+    - x86_64
     EphemeralStorage:
       Size: 1024
-
 Resources:
-  # Lambda Function for the API
   RideTheBusApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: ride-the-bus-api
       Description: Flask API for Ride the Bus game
-      CodeUri: ./backend
+      CodeUri: RideTheBusApiFunction
       Handler: lambda_handler.handler
       MemorySize: 1024
       Environment:
         Variables:
           PYTHONPATH: /var/task/backend:/var/task/ridethebus-react/ridethebus
       Layers:
-        - !Ref TensorflowLayer
-        - !Ref FlaskLayer
+      - Ref: TensorflowLayer
+      - Ref: FlaskLayer
       Events:
         ApiEvent:
           Type: Api
           Properties:
-            RestApiId: !Ref GameApi
+            RestApiId:
+              Ref: GameApi
             Path: /{proxy+}
             Method: ANY
-
-  # Heavy ML dependencies (TensorFlow)
+    Metadata:
+      SamResourceId: RideTheBusApiFunction
   TensorflowLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: ride-the-bus-tensorflow
       Description: TensorFlow and NumPy for ML inference
-      ContentUri: ./backend/layers/tensorflow
+      ContentUri: ..\..\backend\layers\tensorflow
       CompatibleRuntimes:
-        - python3.11
+      - python3.11
       RetentionPolicy: Delete
-
-  # Flask and web framework dependencies
   FlaskLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: ride-the-bus-flask
       Description: Flask, CORS, and utilities
-      ContentUri: ./backend/layers/flask
+      ContentUri: ..\..\backend\layers\flask
       CompatibleRuntimes:
-        - python3.11
+      - python3.11
       RetentionPolicy: Delete
-
-  # API Gateway
   GameApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -65,35 +59,43 @@ Resources:
       Name: ride-the-bus-api
       Description: API Gateway for Ride the Bus Flask app
       Cors:
-        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-        AllowOrigin: "'*'"
-        MaxAge: "'600'"
-
+        AllowMethods: '''GET,POST,PUT,DELETE,OPTIONS'''
+        AllowHeaders: '''Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+        MaxAge: '''600'''
+      TracingEnabled: true
+      MethodSettings:
+      - ResourcePath: /*
+        HttpMethod: '*'
+        MetricsEnabled: true
+        DataTraceEnabled: true
+        LoggingLevel: INFO
 Parameters:
   Environment:
     Type: String
     Default: prod
     AllowedValues:
-      - dev
-      - prod
+    - dev
+    - prod
     Description: Environment name
-
 Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL for Ride the Bus API
-    Value: !Sub 'https://${GameApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+    Value:
+      Fn::Sub: https://${GameApi}.execute-api.${AWS::Region}.amazonaws.com/prod
     Export:
       Name: RideTheBusApiUrl
-
   FunctionArn:
     Description: Lambda Function ARN
-    Value: !GetAtt RideTheBusApiFunction.Arn
+    Value:
+      Fn::GetAtt:
+      - RideTheBusApiFunction
+      - Arn
     Export:
       Name: RideTheBusApiArn
-
   ApiId:
     Description: API Gateway API ID
-    Value: !Ref GameApi
+    Value:
+      Ref: GameApi
     Export:
       Name: RideTheBusApiId

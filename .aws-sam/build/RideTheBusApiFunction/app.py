@@ -1,6 +1,7 @@
 """
 Flask backend for Ride the Bus game.
 Provides REST API for React frontend to play against AI.
+Version: debugging-v3
 """
 
 import sys
@@ -100,16 +101,64 @@ def game_state_endpoint():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/game/move', methods=['POST'])
+@app.route('/game/move', methods=['POST', 'OPTIONS'])
 def make_move():
     """Make a move in the game"""
-    if game_state is None:
-        return jsonify({'success': False, 'error': 'No active game'}), 400
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 204
     
     try:
-        data = request.get_json()
+        # Debug: Log the request
+        print(f"Move request - game_state is: {game_state}")
+        print(f"Request method: {request.method}")
+        print(f"Content-Type: {request.content_type}")
+        
+        if game_state is None:
+            print("ERROR: No active game - game_state is None")
+            return jsonify({'success': False, 'error': 'No active game. Create a new game with POST /game/new first'}), 400
+        
+        # Try to read the body from the WSGI environ wsgi.input
+        environ = request.environ
+        print(f"WSGI input object: {environ.get('wsgi.input')}")
+        print(f"CONTENT_LENGTH: {environ.get('CONTENT_LENGTH')}")
+        
+        wsgi_input = environ.get('wsgi.input')
+        body = b''
+        
+        if wsgi_input:
+            # Try to read from wsgi.input
+            try:
+                wsgi_input.seek(0)  # Reset to beginning
+                body = wsgi_input.read()
+                wsgi_input.seek(0)  # Reset again for potential future reads
+                print(f"Body from wsgi.input: {body}")
+            except Exception as e:
+                print(f"Error reading from wsgi.input: {e}")
+        
+        # If still no body, try the environ BODY override (if set by Mangum)
+        if not body and 'body' in environ:
+            body_str = environ.get('body', '')
+            if isinstance(body_str, str):
+                body = body_str.encode('utf-8')
+            else:
+                body = body_str
+            print(f"Body from environ: {body}")
+        
+        print(f"Final body: {body}")
+        print(f"Body length: {len(body)}")
+        
+        # Parse JSON
+        if not body or body == b'':
+            print("ERROR: Request body is empty!")
+            return jsonify({'success': False, 'error': 'Request body is empty. Send JSON with card_index and guess'}), 400
+        
+        import json
+        data = json.loads(body.decode('utf-8'))
+        print(f"Parsed JSON data: {data}")
+        
         card_index = data.get('card_index')
-        guess = data.get('guess')  # "higher" or "lower"
+        guess = data.get('guess')
         
         if card_index is None or guess is None:
             return jsonify({'success': False, 'error': 'Missing card_index or guess'}), 400
@@ -124,8 +173,8 @@ def make_move():
         selected_card = game_state.board[card_index]
         selected_card_symbol = selected_card[0]
         
-        # Make the move
-        result = game_state.input_guess(selected_card, guess)
+        # Make the move - pass just the card symbol, not the list
+        result = game_state.input_guess(selected_card_symbol, guess)
         
         # Get new board state
         board = get_board_state()
@@ -142,6 +191,9 @@ def make_move():
             'message': 'Correct guess!' if result else 'Wrong guess!'
         }), 200
     except Exception as e:
+        print(f"Exception in make_move: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/game/ai-move', methods=['GET'])

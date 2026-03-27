@@ -113,7 +113,7 @@ class RideTheBus:
     def input_guess(self, card, highlow):
         if [card] not in self.board:
             print("selection not in board")
-            return
+            return False
         
         newCard = self.deck.pop()
         correct = False
@@ -130,6 +130,11 @@ class RideTheBus:
         if drawn_val == current_val:
             correct = False
 
+        # Update score
+        if correct:
+            self.score += 1
+        else:
+            self.score = 0
         
         self.replace(card, newCard)
         return correct

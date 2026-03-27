@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Ride the Bus Flask API on Lambda with API Gateway
+Description: Ride the Bus Flask API on Lambda with API Gateway - Updated
 Globals:
   Function:
     Timeout: 60
@@ -14,16 +14,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: ride-the-bus-api
-      Description: Flask API for Ride the Bus game
+      Description: Flask API for Ride the Bus game - Updated
       CodeUri: RideTheBusApiFunction
       Handler: lambda_handler.handler
       MemorySize: 1024
       Environment:
         Variables:
           PYTHONPATH: /var/task/backend:/var/task/ridethebus-react/ridethebus
-      Layers:
-      - Ref: TensorflowLayer
-      - Ref: FlaskLayer
       Events:
         ApiEvent:
           Type: Api
@@ -34,24 +31,6 @@ Resources:
             Method: ANY
     Metadata:
       SamResourceId: RideTheBusApiFunction
-  TensorflowLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: ride-the-bus-tensorflow
-      Description: TensorFlow and NumPy for ML inference
-      ContentUri: ..\..\backend\layers\tensorflow
-      CompatibleRuntimes:
-      - python3.11
-      RetentionPolicy: Delete
-  FlaskLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: ride-the-bus-flask
-      Description: Flask, CORS, and utilities
-      ContentUri: ..\..\backend\layers\flask
-      CompatibleRuntimes:
-      - python3.11
-      RetentionPolicy: Delete
   GameApi:
     Type: AWS::Serverless::Api
     Properties:

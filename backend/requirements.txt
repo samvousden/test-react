@@ -1,4 +1,4 @@
-# Core application code only
-# All dependencies are provided via Lambda Layers:
-# - TensorFlow and NumPy layer
-# - Flask and utilities layer
+Flask==3.0.0
+Flask-CORS==4.0.0
+mangum==0.17.0
+aws-lambda-powertools==2.16.0

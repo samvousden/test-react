@@ -5,7 +5,7 @@ Provides REST API for React frontend to play against AI.
 
 import sys
 import os
-import numpy as np
+import random
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pathlib import Path
@@ -14,11 +14,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'ridethebus-react' / 'ridethebus'))
 
 try:
-    import tensorflow as tf
     from ride_bus import RideTheBus
 except ImportError as e:
     print(f"Import error: {e}")
-    print("Please ensure TensorFlow and ride_bus dependencies are installed")
+    print("Please ensure ride_bus dependencies are installed")
     sys.exit(1)
 
 app = Flask(__name__)
@@ -26,19 +25,11 @@ CORS(app)
 
 # Global game state
 game_state = None
-ai_model = None
 
 def load_ai_model():
-    """Load the trained DQN model"""
-    global ai_model
-    model_path = Path(__file__).parent.parent / 'ridethebus-react' / 'ridethebus' / 'ridebus_dqn_model.keras'
-    try:
-        ai_model = tf.keras.models.load_model(str(model_path))
-        print(f"✓ Loaded AI model from {model_path}")
-        return True
-    except Exception as e:
-        print(f"✗ Failed to load AI model: {e}")
-        return False
+    """Simple AI - no model loading needed"""
+    print("✓ Simple AI initialized")
+    return True
 
 def get_board_state():
     """Convert game board to readable format"""
@@ -56,30 +47,16 @@ def get_board_state():
         })
     return board
 
-def get_game_observation():
-    """Get normalized observation for AI model"""
-    board = []
-    for card in game_state.board:
-        card_val = game_state.cardvals.get(card[0], 0)
-        board.append(card_val)
-    return np.array(board, dtype=np.float32)
-
-def get_ai_action(observation):
-    """Get best action from AI model"""
-    if ai_model is None:
-        return None
-    
-    state_input = np.expand_dims(observation, axis=0) / 13.0
-    q_values = ai_model.predict(state_input, verbose=0)
-    action = np.argmax(q_values[0])
-    
-    card_idx = action // 2
-    guess = "higher" if action % 2 == 1 else "lower"
+def get_ai_action():
+    """Simple AI: randomly choose higher/lower with slight bias toward higher"""
+    # Simple strategy: 55% chance to guess higher, 45% lower
+    card_idx = random.randint(0, 15)  # Random card
+    guess = "higher" if random.random() < 0.55 else "lower"
     
     return {
         'card_index': int(card_idx),
         'guess': guess,
-        'confidence': float(np.max(q_values[0]))
+        'confidence': 0.5  # Fixed confidence for simple AI
     }
 
 @app.route('/health', methods=['GET'])
@@ -87,7 +64,7 @@ def health():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'ai_model_loaded': ai_model is not None
+        'ai_available': True
     })
 
 @app.route('/game/new', methods=['POST'])
@@ -177,12 +154,8 @@ def ai_recommended_move():
     if game_state is None:
         return jsonify({'success': False, 'error': 'No active game'}), 400
     
-    if ai_model is None:
-        return jsonify({'success': False, 'error': 'AI model not loaded'}), 500
-    
     try:
-        observation = get_game_observation()
-        ai_action = get_ai_action(observation)
+        ai_action = get_ai_action()
         
         if ai_action is None:
             return jsonify({'success': False, 'error': 'Failed to get AI action'}), 500
@@ -203,12 +176,8 @@ def ai_plays_move():
     if game_state is None:
         return jsonify({'success': False, 'error': 'No active game'}), 400
     
-    if ai_model is None:
-        return jsonify({'success': False, 'error': 'AI model not loaded'}), 500
-    
     try:
-        observation = get_game_observation()
-        ai_action = get_ai_action(observation)
+        ai_action = get_ai_action()
         
         if ai_action is None:
             return jsonify({'success': False, 'error': 'Failed to get AI action'}), 500

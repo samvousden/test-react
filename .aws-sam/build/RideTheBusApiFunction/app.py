@@ -8,10 +8,6 @@ import os
 import random
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from pathlib import Path
-
-# Add ridethebus path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'ridethebus-react' / 'ridethebus'))
 
 try:
     from ride_bus import RideTheBus
@@ -150,58 +146,13 @@ def make_move():
 
 @app.route('/game/ai-move', methods=['GET'])
 def ai_recommended_move():
-    """Get AI's recommended move"""
-    if game_state is None:
-        return jsonify({'success': False, 'error': 'No active game'}), 400
-    
-    try:
-        ai_action = get_ai_action()
-        
-        if ai_action is None:
-            return jsonify({'success': False, 'error': 'Failed to get AI action'}), 500
-        
-        return jsonify({
-            'success': True,
-            'card_index': ai_action['card_index'],
-            'guess': ai_action['guess'],
-            'confidence': ai_action['confidence'],
-            'message': 'AI recommendation generated'
-        }), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    """Get AI's recommended move - DISABLED FOR NOW"""
+    return jsonify({'success': False, 'error': 'AI functionality disabled for testing'}), 503
 
 @app.route('/game/ai-play', methods=['POST'])
 def ai_plays_move():
-    """Let AI make a move"""
-    if game_state is None:
-        return jsonify({'success': False, 'error': 'No active game'}), 400
-    
-    try:
-        ai_action = get_ai_action()
-        
-        if ai_action is None:
-            return jsonify({'success': False, 'error': 'Failed to get AI action'}), 500
-        
-        # Execute the move
-        selected_card = game_state.board[ai_action['card_index']]
-        result = game_state.input_guess(selected_card, ai_action['guess'])
-        
-        board = get_board_state()
-        
-        return jsonify({
-            'success': True,
-            'card_index': ai_action['card_index'],
-            'guess': ai_action['guess'],
-            'result': result,
-            'correct': result,
-            'score': game_state.score,
-            'deck_remaining': len(game_state.deck),
-            'game_over': len(game_state.deck) == 0,
-            'board': board,
-            'message': 'Correct!' if result else 'Wrong!'
-        }), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    """Let AI make a move - DISABLED FOR NOW"""
+    return jsonify({'success': False, 'error': 'AI functionality disabled for testing'}), 503
 
 if __name__ == '__main__':
     # Load AI model on startup

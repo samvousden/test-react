@@ -1,19 +1,17 @@
 """
 AWS Lambda handler for Ride the Bus Flask app.
-Converts Flask WSGI app to Lambda-compatible format using Mangum.
+Converts Flask WSGI app to Lambda-compatible format using Mangum and asgiref.
 """
-
-import sys
-from pathlib import Path
-
-# Add ridethebus path to sys.path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'ridethebus-react' / 'ridethebus'))
 
 # Import the Flask app
 from app import app
 
-# Use Mangum to convert WSGI to ASGI for Lambda
+# Use asgiref to convert WSGI to ASGI
+from asgiref.wsgi import WsgiToAsgi
 from mangum import Mangum
 
-# Create Lambda handler
-handler = Mangum(app, lifespan="off")
+# Create ASGI wrapper around Flask WSGI app
+asgi_app = WsgiToAsgi(app)
+
+# Create Lambda handler with Mangum
+handler = Mangum(asgi_app)
